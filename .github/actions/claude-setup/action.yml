@@ -1,0 +1,77 @@
+name: Claude CI Setup
+description: Set up Node.js, detect package manager, install dependencies, and optionally install Claude Code CLI
+
+inputs:
+  node-version:
+    description: Node.js version to install
+    default: '22'
+  install-claude:
+    description: Whether to install Claude Code CLI globally
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Detect package manager
+      id: detect
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        manager=""
+        install_cmd=""
+        cache_manager=""
+        cache_enabled="false"
+
+        if [ -f pnpm-lock.yaml ]; then
+          manager="pnpm"
+          install_cmd="pnpm install --frozen-lockfile"
+          cache_manager="pnpm"
+          cache_enabled="true"
+        elif [ -f yarn.lock ]; then
+          manager="yarn"
+          install_cmd="yarn install --frozen-lockfile"
+          cache_manager="yarn"
+          cache_enabled="true"
+        elif [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
+          manager="npm"
+          install_cmd="npm ci"
+          cache_manager="npm"
+          cache_enabled="true"
+        else
+          manager="npm"
+          install_cmd="npm install"
+        fi
+
+        echo "manager=${manager}" >> "$GITHUB_OUTPUT"
+        echo "install_cmd=${install_cmd}" >> "$GITHUB_OUTPUT"
+        echo "cache_manager=${cache_manager}" >> "$GITHUB_OUTPUT"
+        echo "cache_enabled=${cache_enabled}" >> "$GITHUB_OUTPUT"
+
+    - uses: pnpm/action-setup@v4
+      if: steps.detect.outputs.manager == 'pnpm'
+      with:
+        version: 9
+
+    - uses: actions/setup-node@v4
+      if: steps.detect.outputs.cache_enabled == 'true'
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: ${{ steps.detect.outputs.cache_manager }}
+
+    - uses: actions/setup-node@v4
+      if: steps.detect.outputs.cache_enabled != 'true'
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Install repository dependencies
+      shell: bash
+      run: ${{ steps.detect.outputs.install_cmd }}
+
+    - name: Install Claude Code CLI
+      if: inputs.install-claude == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        npm install --global @anthropic-ai/claude-code
+        claude --version

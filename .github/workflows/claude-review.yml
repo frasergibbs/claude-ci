@@ -1,0 +1,154 @@
+name: Claude Review (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      OPS_BRIDGE_INTERNAL_URL:
+        type: string
+        default: ''
+      OPS_BRIDGE_GITHUB_AUDIENCE:
+        type: string
+        default: ''
+      CLAUDE_PROFILE_LOW:
+        type: string
+        default: 'claude-haiku-4-5-20251001:medium'
+      CLAUDE_PROFILE_MEDIUM:
+        type: string
+        default: 'claude-sonnet-4-6:medium'
+      CLAUDE_PROFILE_HIGH:
+        type: string
+        default: 'claude-sonnet-4-6:high'
+      CLAUDE_PROFILE_HIGHEST:
+        type: string
+        default: 'claude-opus-4-6:high'
+      CLAUDE_MAX_FIX_ROUNDS:
+        type: string
+        default: '1'
+      CLAUDE_MIN_TEST_MATCH_RATIO:
+        type: string
+        default: ''
+      CLAUDE_MIN_DIFF_COVERAGE_RATIO:
+        type: string
+        default: ''
+      CLAUDE_TARGETED_TEST_COMMAND:
+        type: string
+        default: ''
+      CLAUDE_AUTOFIX_ALLOWED_PATHS:
+        type: string
+        default: ''
+      CLAUDE_AUTOFIX_BLOCKED_PATTERNS:
+        type: string
+        default: ''
+      CLAUDE_AUTOFIX_ALLOW_BLOCKED:
+        type: string
+        default: ''
+      CLAUDE_AUTOFIX_ALLOW_LOCKFILES:
+        type: string
+        default: ''
+      CLAUDE_PEER_REVIEW_BOTS:
+        type: string
+        default: 'github-copilot[bot],copilot-pull-request-reviewer[bot]'
+      CLAUDE_REQUIRE_PEER_REVIEW:
+        type: string
+        default: 'true'
+      CLAUDE_PEER_REVIEW_TIMEOUT_SECONDS:
+        type: string
+        default: '900'
+      CLAUDE_PEER_REVIEW_FINAL_TIMEOUT_SECONDS:
+        type: string
+        default: '240'
+      CLAUDE_PEER_REVIEW_INTERVAL_SECONDS:
+        type: string
+        default: '20'
+      CLAUDE_QUALITY_BASELINE_COMMAND:
+        type: string
+        default: 'npx turbo typecheck test'
+      CLAUDE_ENABLE_CODEQL:
+        type: string
+        default: 'false'
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  id-token: write
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout caller repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout claude-ci pipeline
+        uses: actions/checkout@v4
+        with:
+          repository: frasergibbs/claude-ci
+          ref: v1
+          path: .claude-pipeline
+
+      - name: Link pipeline scripts and schemas
+        run: |
+          mkdir -p .github
+          rm -rf .github/scripts .github/schemas
+          ln -s "$GITHUB_WORKSPACE/.claude-pipeline/.github/scripts" .github/scripts
+          ln -s "$GITHUB_WORKSPACE/.claude-pipeline/.github/schemas" .github/schemas
+
+      - uses: frasergibbs/claude-ci/.github/actions/claude-setup@v1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Semgrep
+        run: python -m pip install --upgrade semgrep
+
+      - name: Mandatory Claude orchestrator review
+        run: node .github/scripts/claude-orchestrator.mjs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPS_BRIDGE_INTERNAL_URL: ${{ inputs.OPS_BRIDGE_INTERNAL_URL }}
+          OPS_BRIDGE_GITHUB_AUDIENCE: ${{ inputs.OPS_BRIDGE_GITHUB_AUDIENCE }}
+          CLAUDE_PROFILE_LOW: ${{ inputs.CLAUDE_PROFILE_LOW || 'claude-haiku-4-5-20251001:medium' }}
+          CLAUDE_PROFILE_MEDIUM: ${{ inputs.CLAUDE_PROFILE_MEDIUM || 'claude-sonnet-4-6:medium' }}
+          CLAUDE_PROFILE_HIGH: ${{ inputs.CLAUDE_PROFILE_HIGH || 'claude-sonnet-4-6:high' }}
+          CLAUDE_PROFILE_HIGHEST: ${{ inputs.CLAUDE_PROFILE_HIGHEST || 'claude-opus-4-6:high' }}
+          CLAUDE_MAX_FIX_ROUNDS: ${{ inputs.CLAUDE_MAX_FIX_ROUNDS || '1' }}
+          CLAUDE_MIN_TEST_MATCH_RATIO: ${{ inputs.CLAUDE_MIN_TEST_MATCH_RATIO }}
+          CLAUDE_MIN_DIFF_COVERAGE_RATIO: ${{ inputs.CLAUDE_MIN_DIFF_COVERAGE_RATIO }}
+          CLAUDE_TARGETED_TEST_COMMAND: ${{ inputs.CLAUDE_TARGETED_TEST_COMMAND }}
+          CLAUDE_AUTOFIX_ALLOWED_PATHS: ${{ inputs.CLAUDE_AUTOFIX_ALLOWED_PATHS }}
+          CLAUDE_AUTOFIX_BLOCKED_PATTERNS: ${{ inputs.CLAUDE_AUTOFIX_BLOCKED_PATTERNS }}
+          CLAUDE_AUTOFIX_ALLOW_BLOCKED: ${{ inputs.CLAUDE_AUTOFIX_ALLOW_BLOCKED }}
+          CLAUDE_AUTOFIX_ALLOW_LOCKFILES: ${{ inputs.CLAUDE_AUTOFIX_ALLOW_LOCKFILES }}
+          CLAUDE_PEER_REVIEW_BOTS: ${{ inputs.CLAUDE_PEER_REVIEW_BOTS || 'github-copilot[bot],copilot-pull-request-reviewer[bot]' }}
+          CLAUDE_REQUIRE_PEER_REVIEW: ${{ inputs.CLAUDE_REQUIRE_PEER_REVIEW || 'true' }}
+          CLAUDE_PEER_REVIEW_TIMEOUT_SECONDS: ${{ inputs.CLAUDE_PEER_REVIEW_TIMEOUT_SECONDS || '900' }}
+          CLAUDE_PEER_REVIEW_FINAL_TIMEOUT_SECONDS: ${{ inputs.CLAUDE_PEER_REVIEW_FINAL_TIMEOUT_SECONDS || '240' }}
+          CLAUDE_PEER_REVIEW_INTERVAL_SECONDS: ${{ inputs.CLAUDE_PEER_REVIEW_INTERVAL_SECONDS || '20' }}
+          CLAUDE_QUALITY_BASELINE_COMMAND: ${{ inputs.CLAUDE_QUALITY_BASELINE_COMMAND || 'npx turbo typecheck test' }}
+
+  codeql:
+    if: ${{ inputs.CLAUDE_ENABLE_CODEQL == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v4
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v4

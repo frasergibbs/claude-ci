@@ -1,0 +1,26 @@
+# Copy to .github/workflows/claude-autofix.yml in your repo.
+# Triggers when the CI workflow fails on a PR.
+# Update the `workflows` list to match your CI workflow name.
+name: Claude Autofix
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  actions: read
+  id-token: write
+
+jobs:
+  claude-autofix:
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'failure'
+    uses: frasergibbs/claude-ci/.github/workflows/claude-autofix.yml@v1
+    with:
+      OPS_BRIDGE_INTERNAL_URL: ${{ vars.OPS_BRIDGE_INTERNAL_URL }}
+      OPS_BRIDGE_GITHUB_AUDIENCE: ${{ vars.OPS_BRIDGE_GITHUB_AUDIENCE }}
+      CLAUDE_QUALITY_BASELINE_COMMAND: ${{ vars.CLAUDE_QUALITY_BASELINE_COMMAND }}
+    secrets: inherit

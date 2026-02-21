@@ -1,0 +1,132 @@
+name: Claude Testing (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      OPS_BRIDGE_INTERNAL_URL:
+        type: string
+        default: ''
+      OPS_BRIDGE_GITHUB_AUDIENCE:
+        type: string
+        default: ''
+      CLAUDE_PROFILE_MEDIUM:
+        type: string
+        default: 'claude-sonnet-4-6:medium'
+      CLAUDE_PROFILE_HIGH:
+        type: string
+        default: 'claude-sonnet-4-6:high'
+      CLAUDE_PROFILE_HIGHEST:
+        type: string
+        default: 'claude-opus-4-6:high'
+      CLAUDE_QUALITY_BASELINE_COMMAND:
+        type: string
+        default: 'npx turbo typecheck test'
+      CLAUDE_AUTOFIX_ALLOWED_PATHS:
+        type: string
+        default: ''
+      CLAUDE_AUTOFIX_BLOCKED_PATTERNS:
+        type: string
+        default: ''
+      CLAUDE_AUTOFIX_ALLOW_BLOCKED:
+        type: string
+        default: ''
+      TURBO_TEAM:
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  id-token: write
+
+jobs:
+  unit-test-gen:
+    runs-on: ubuntu-latest
+    outputs:
+      has-ui-changes: ${{ steps.test-gen.outputs.has-ui-changes }}
+      has-playwright: ${{ steps.test-gen.outputs.has-playwright }}
+
+    steps:
+      - name: Checkout caller repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout claude-ci pipeline
+        uses: actions/checkout@v4
+        with:
+          repository: frasergibbs/claude-ci
+          ref: v1
+          path: .claude-pipeline
+
+      - name: Link pipeline scripts and schemas
+        run: |
+          mkdir -p .github
+          rm -rf .github/scripts .github/schemas
+          ln -s "$GITHUB_WORKSPACE/.claude-pipeline/.github/scripts" .github/scripts
+          ln -s "$GITHUB_WORKSPACE/.claude-pipeline/.github/schemas" .github/schemas
+
+      - uses: frasergibbs/claude-ci/.github/actions/claude-setup@v1
+
+      - name: Generate tests for PR changes
+        id: test-gen
+        run: node .github/scripts/claude-testing.mjs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPS_BRIDGE_INTERNAL_URL: ${{ inputs.OPS_BRIDGE_INTERNAL_URL }}
+          OPS_BRIDGE_GITHUB_AUDIENCE: ${{ inputs.OPS_BRIDGE_GITHUB_AUDIENCE }}
+          CLAUDE_PROFILE_MEDIUM: ${{ inputs.CLAUDE_PROFILE_MEDIUM || 'claude-sonnet-4-6:medium' }}
+          CLAUDE_PROFILE_HIGH: ${{ inputs.CLAUDE_PROFILE_HIGH || 'claude-sonnet-4-6:high' }}
+          CLAUDE_PROFILE_HIGHEST: ${{ inputs.CLAUDE_PROFILE_HIGHEST || 'claude-opus-4-6:high' }}
+          CLAUDE_QUALITY_BASELINE_COMMAND: ${{ inputs.CLAUDE_QUALITY_BASELINE_COMMAND || 'npx turbo typecheck test' }}
+          CLAUDE_AUTOFIX_ALLOWED_PATHS: ${{ inputs.CLAUDE_AUTOFIX_ALLOWED_PATHS }}
+          CLAUDE_AUTOFIX_BLOCKED_PATTERNS: ${{ inputs.CLAUDE_AUTOFIX_BLOCKED_PATTERNS }}
+          CLAUDE_AUTOFIX_ALLOW_BLOCKED: ${{ inputs.CLAUDE_AUTOFIX_ALLOW_BLOCKED }}
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ inputs.TURBO_TEAM }}
+
+  e2e:
+    needs: [unit-test-gen]
+    if: needs.unit-test-gen.outputs.has-ui-changes == 'true' && needs.unit-test-gen.outputs.has-playwright == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout caller repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout claude-ci pipeline
+        uses: actions/checkout@v4
+        with:
+          repository: frasergibbs/claude-ci
+          ref: v1
+          path: .claude-pipeline
+
+      - name: Link pipeline scripts and schemas
+        run: |
+          mkdir -p .github
+          rm -rf .github/scripts .github/schemas
+          ln -s "$GITHUB_WORKSPACE/.claude-pipeline/.github/scripts" .github/scripts
+          ln -s "$GITHUB_WORKSPACE/.claude-pipeline/.github/schemas" .github/schemas
+
+      - uses: frasergibbs/claude-ci/.github/actions/claude-setup@v1
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E pipeline
+        run: node .github/scripts/claude-e2e.mjs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPS_BRIDGE_INTERNAL_URL: ${{ inputs.OPS_BRIDGE_INTERNAL_URL }}
+          OPS_BRIDGE_GITHUB_AUDIENCE: ${{ inputs.OPS_BRIDGE_GITHUB_AUDIENCE }}
+          CLAUDE_PROFILE_HIGHEST: ${{ inputs.CLAUDE_PROFILE_HIGHEST || 'claude-opus-4-6:high' }}
+          CLAUDE_PROFILE_HIGH: ${{ inputs.CLAUDE_PROFILE_HIGH || 'claude-sonnet-4-6:high' }}
+          CLAUDE_QUALITY_BASELINE_COMMAND: ${{ inputs.CLAUDE_QUALITY_BASELINE_COMMAND || 'npx turbo typecheck test' }}
+          CLAUDE_AUTOFIX_ALLOWED_PATHS: ${{ inputs.CLAUDE_AUTOFIX_ALLOWED_PATHS }}
+          CLAUDE_AUTOFIX_BLOCKED_PATTERNS: ${{ inputs.CLAUDE_AUTOFIX_BLOCKED_PATTERNS }}
+          CLAUDE_AUTOFIX_ALLOW_BLOCKED: ${{ inputs.CLAUDE_AUTOFIX_ALLOW_BLOCKED }}
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ inputs.TURBO_TEAM }}

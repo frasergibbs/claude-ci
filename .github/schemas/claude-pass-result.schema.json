@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ClaudePassResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pass",
+    "status",
+    "blockingFindings",
+    "summary",
+    "actionsTaken"
+  ],
+  "properties": {
+    "pass": {
+      "type": "string",
+      "enum": [
+        "scope",
+        "quality",
+        "security",
+        "docs",
+        "testing",
+        "autofix",
+        "e2e"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "blockingFindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "severity",
+          "reason",
+          "file",
+          "line"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "file": {
+            "type": "string",
+            "minLength": 1
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "actionsTaken": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+# Copy to .github/workflows/claude-review.yml in your repo.
+# Override any input by adding it under `with:`.
+# All CLAUDE_* inputs have sensible defaults — only pass what you need to customize.
+name: Claude Review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  id-token: write
+  actions: read
+  security-events: write
+
+jobs:
+  claude-review:
+    uses: frasergibbs/claude-ci/.github/workflows/claude-review.yml@v1
+    with:
+      OPS_BRIDGE_INTERNAL_URL: ${{ vars.OPS_BRIDGE_INTERNAL_URL }}
+      OPS_BRIDGE_GITHUB_AUDIENCE: ${{ vars.OPS_BRIDGE_GITHUB_AUDIENCE }}
+      CLAUDE_QUALITY_BASELINE_COMMAND: ${{ vars.CLAUDE_QUALITY_BASELINE_COMMAND }}
+    secrets: inherit

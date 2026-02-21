@@ -1,0 +1,24 @@
+# Copy to .github/workflows/claude-testing.yml in your repo.
+# Triggers after Claude Review completes successfully.
+name: Claude Testing
+
+on:
+  workflow_run:
+    workflows: ["Claude Review"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  id-token: write
+
+jobs:
+  claude-testing:
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+    uses: frasergibbs/claude-ci/.github/workflows/claude-testing.yml@v1
+    with:
+      OPS_BRIDGE_INTERNAL_URL: ${{ vars.OPS_BRIDGE_INTERNAL_URL }}
+      OPS_BRIDGE_GITHUB_AUDIENCE: ${{ vars.OPS_BRIDGE_GITHUB_AUDIENCE }}
+      CLAUDE_QUALITY_BASELINE_COMMAND: ${{ vars.CLAUDE_QUALITY_BASELINE_COMMAND }}
+    secrets: inherit
