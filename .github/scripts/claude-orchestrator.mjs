@@ -577,7 +577,12 @@ function commitAndPush(message) {
   runShell('git config user.email "41898282+github-actions[bot]@users.noreply.github.com"');
   runShell("git add -A");
   runShell(`git commit -m "${message}"`);
-  runShell("git push");
+  const branch = process.env.GITHUB_HEAD_REF;
+  if (branch) {
+    runShell(`git push origin HEAD:refs/heads/${branch}`);
+  } else {
+    runShell("git push");
+  }
 }
 
 async function postBlocked(reason, findings = []) {
