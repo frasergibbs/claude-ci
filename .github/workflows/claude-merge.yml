@@ -79,6 +79,7 @@ jobs:
       - name: Conditional squash merge
         run: node .github/scripts/claude-merge.mjs
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPS_BRIDGE_INTERNAL_URL: ${{ inputs.OPS_BRIDGE_INTERNAL_URL }}
           OPS_BRIDGE_GITHUB_AUDIENCE: ${{ inputs.OPS_BRIDGE_GITHUB_AUDIENCE }}
           CLAUDE_ENABLE_CODEQL: ${{ inputs.CLAUDE_ENABLE_CODEQL || 'false' }}

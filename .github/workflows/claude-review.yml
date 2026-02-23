@@ -109,6 +109,7 @@ jobs:
       - name: Mandatory Claude orchestrator review
         run: node .github/scripts/claude-orchestrator.mjs
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPS_BRIDGE_INTERNAL_URL: ${{ inputs.OPS_BRIDGE_INTERNAL_URL }}
           OPS_BRIDGE_GITHUB_AUDIENCE: ${{ inputs.OPS_BRIDGE_GITHUB_AUDIENCE }}
