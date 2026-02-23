@@ -575,7 +575,16 @@ function hasWorkingTreeChanges() {
 function commitAndPush(message) {
   runShell('git config user.name "github-actions[bot]"');
   runShell('git config user.email "41898282+github-actions[bot]@users.noreply.github.com"');
+  // Exclude pipeline runtime artifacts from being committed
+  runShell("echo '.claude-pipeline' >> .git/info/exclude");
   runShell("git add -A");
+  // Unstage symlinks created by workflow setup (point to .claude-pipeline)
+  runShell("git reset HEAD -- .github/scripts .github/schemas 2>/dev/null || true");
+  const diff = runShell("git diff --cached --stat", { allowFailure: true, quiet: true });
+  if (!diff.stdout?.trim()) {
+    console.log("No changes to commit after excluding pipeline artifacts.");
+    return;
+  }
   runShell(`git commit -m "${message}"`);
   const branch = process.env.GITHUB_HEAD_REF;
   if (branch) {
