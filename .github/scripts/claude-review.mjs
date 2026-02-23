@@ -569,10 +569,14 @@ async function ensureLinearLinkInPrBody(token, repoContext, pr, issueKey) {
 }
 
 async function markReadyForReview(token, repoContext, prNumber) {
-  await githubRequest(
+  const prData = await githubRequest(
     token,
-    `/repos/${repoContext.owner}/${repoContext.repo}/pulls/${prNumber}/ready_for_review`,
-    { method: "POST" },
+    `/repos/${repoContext.owner}/${repoContext.repo}/pulls/${prNumber}`,
+  );
+  await githubGraphql(
+    token,
+    `mutation($id: ID!) { markPullRequestReadyForReview(input: { pullRequestId: $id }) { pullRequest { number } } }`,
+    { id: prData.node_id },
   );
 }
 
