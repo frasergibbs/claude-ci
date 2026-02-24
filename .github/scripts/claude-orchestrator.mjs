@@ -618,6 +618,18 @@ async function postBlocked(reason, findings = []) {
 }
 
 function buildFixPrompt(passName, passResult, context) {
+  const scopeConstraints = passName === "scope"
+    ? [
+        "",
+        "SCOPE FIX CONSTRAINTS — read carefully before touching any file:",
+        "- Scope fixes are SUBTRACTIVE ONLY. Your only permitted actions are removing or reverting out-of-scope changes.",
+        "- NEVER add new files, documentation, comments, or code — even to satisfy an acceptance-criteria finding.",
+        "- NEVER generate documentation, README updates, changelog entries, or inline comments to address a finding.",
+        "- If a finding says evidence is missing or documentation is absent, DO NOT attempt to create that evidence. That finding cannot be resolved through code changes; leave it unfixed and note it in your summary.",
+        "- A scope fix that adds content will itself be flagged as out-of-scope and create an infinite loop. When in doubt, revert rather than add.",
+      ]
+    : [];
+
   return [
     `You are a senior engineer applying minimal, surgical fixes to resolve blocking findings from the ${passName} review pass. You understand the codebase context and make the smallest correct change — no drive-by refactors, no style changes, no unrelated improvements.`,
     "",
@@ -625,6 +637,7 @@ function buildFixPrompt(passName, passResult, context) {
     "- What is the root cause? Is the finding valid or a false positive from the review pass?",
     "- What is the minimal fix that resolves the issue without introducing new risk?",
     "- Could the fix break other code paths or tests?",
+    ...scopeConstraints,
     "",
     "THEN apply fixes.",
     "",
