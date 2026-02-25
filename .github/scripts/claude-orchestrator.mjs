@@ -904,7 +904,8 @@ async function main() {
   }
 
   // Non-blocking docs pass — runs only after all mandatory passes succeed
-  if (!isDocsOnlyDiff(diff.nameStatus)) {
+  // Disabled by default; opt-in via CLAUDE_ENABLE_DOCS_PASS=true
+  if (process.env.CLAUDE_ENABLE_DOCS_PASS === "true" && !isDocsOnlyDiff(diff.nameStatus)) {
     try {
       const docsPrompt = buildDocsPrompt({ issueKey, issueDescription, diff });
       const docsResult = runClaudePass("docs", docsPrompt, profile);

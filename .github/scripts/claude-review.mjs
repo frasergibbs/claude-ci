@@ -883,11 +883,9 @@ async function runContextAction(pr, issueKey) {
       blockHuman = routing.blockHuman === true;
       blockReason = toStringValue(routing.blockReason, "");
     } catch (error) {
-      blockHuman = true;
-      blockReason =
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch review context from ops-bridge";
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[context] ops-bridge failed (non-blocking): ${message}`);
+      // Continue with empty context — review will use PR diff only
     }
   }
 
