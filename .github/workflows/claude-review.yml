@@ -74,7 +74,7 @@ on:
         default: 'false'
     secrets:
       ANTHROPIC_API_KEY:
-        required: true
+        required: false
 
 permissions:
   contents: write
