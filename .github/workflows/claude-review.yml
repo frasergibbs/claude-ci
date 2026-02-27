@@ -72,6 +72,11 @@ on:
       CLAUDE_ENABLE_DOCS_PASS:
         type: string
         default: 'false'
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+      GITHUB_TOKEN:
+        required: false
 
 permissions:
   contents: write
