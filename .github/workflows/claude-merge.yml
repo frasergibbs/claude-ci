@@ -1,9 +1,47 @@
-name: Claude Merge
+name: Claude Merge (Reusable)
 
 on:
-  workflow_run:
-    workflows: ["CI", "Claude Review"]
-    types: [completed]
+  workflow_call:
+    inputs:
+      OPS_BRIDGE_INTERNAL_URL:
+        type: string
+        default: ''
+      OPS_BRIDGE_GITHUB_AUDIENCE:
+        type: string
+        default: ''
+      CLAUDE_ENABLE_CODEQL:
+        type: string
+        default: 'false'
+      CLAUDE_REQUIRED_CHECKS:
+        type: string
+        default: 'build,claude-review'
+      CLAUDE_PEER_REVIEW_BOTS:
+        type: string
+        default: 'github-copilot[bot],copilot-pull-request-reviewer[bot]'
+      CLAUDE_REQUIRE_PEER_REVIEW:
+        type: string
+        default: 'true'
+      CLAUDE_AUTO_READY_DRAFTS:
+        type: string
+        default: ''
+      CLAUDE_POST_MERGE_HEALTHCHECK_URL:
+        type: string
+        default: ''
+      CLAUDE_POST_MERGE_HEALTHCHECK_URLS:
+        type: string
+        default: ''
+      CLAUDE_POST_MERGE_HEALTHCHECK_SECONDS:
+        type: string
+        default: ''
+      CLAUDE_POST_MERGE_HEALTHCHECK_INTERVAL_SECONDS:
+        type: string
+        default: ''
+      CLAUDE_POST_MERGE_HEALTHCHECK_SUCCESS_STREAK:
+        type: string
+        default: ''
+      CLAUDE_POST_MERGE_ROLLBACK_MODE:
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -13,20 +51,45 @@ permissions:
 
 jobs:
   claude-merge:
-    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
-    uses: frasergibbs/claude-ci/.github/workflows/claude-merge.yml@v1
-    with:
-      OPS_BRIDGE_INTERNAL_URL: ${{ vars.OPS_BRIDGE_INTERNAL_URL }}
-      OPS_BRIDGE_GITHUB_AUDIENCE: ${{ vars.OPS_BRIDGE_GITHUB_AUDIENCE }}
-      CLAUDE_ENABLE_CODEQL: ${{ vars.CLAUDE_ENABLE_CODEQL }}
-      CLAUDE_REQUIRED_CHECKS: ${{ vars.CLAUDE_REQUIRED_CHECKS }}
-      CLAUDE_PEER_REVIEW_BOTS: ${{ vars.CLAUDE_PEER_REVIEW_BOTS }}
-      CLAUDE_REQUIRE_PEER_REVIEW: ${{ vars.CLAUDE_REQUIRE_PEER_REVIEW }}
-      CLAUDE_AUTO_READY_DRAFTS: ${{ vars.CLAUDE_AUTO_READY_DRAFTS }}
-      CLAUDE_POST_MERGE_HEALTHCHECK_URL: ${{ vars.CLAUDE_POST_MERGE_HEALTHCHECK_URL }}
-      CLAUDE_POST_MERGE_HEALTHCHECK_URLS: ${{ vars.CLAUDE_POST_MERGE_HEALTHCHECK_URLS }}
-      CLAUDE_POST_MERGE_HEALTHCHECK_SECONDS: ${{ vars.CLAUDE_POST_MERGE_HEALTHCHECK_SECONDS }}
-      CLAUDE_POST_MERGE_HEALTHCHECK_INTERVAL_SECONDS: ${{ vars.CLAUDE_POST_MERGE_HEALTHCHECK_INTERVAL_SECONDS }}
-      CLAUDE_POST_MERGE_HEALTHCHECK_SUCCESS_STREAK: ${{ vars.CLAUDE_POST_MERGE_HEALTHCHECK_SUCCESS_STREAK }}
-      CLAUDE_POST_MERGE_ROLLBACK_MODE: ${{ vars.CLAUDE_POST_MERGE_ROLLBACK_MODE }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout caller repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout claude-ci pipeline
+        uses: actions/checkout@v4
+        with:
+          repository: frasergibbs/claude-ci
+          ref: v1
+          path: .claude-pipeline
+
+      - name: Link pipeline scripts
+        run: |
+          mkdir -p .github
+          rm -rf .github/scripts
+          ln -s "$GITHUB_WORKSPACE/.claude-pipeline/.github/scripts" .github/scripts
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Conditional squash merge
+        run: node .github/scripts/claude-merge.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPS_BRIDGE_INTERNAL_URL: ${{ inputs.OPS_BRIDGE_INTERNAL_URL }}
+          OPS_BRIDGE_GITHUB_AUDIENCE: ${{ inputs.OPS_BRIDGE_GITHUB_AUDIENCE }}
+          CLAUDE_ENABLE_CODEQL: ${{ inputs.CLAUDE_ENABLE_CODEQL || 'false' }}
+          CLAUDE_REQUIRED_CHECKS: ${{ inputs.CLAUDE_REQUIRED_CHECKS || 'build,claude-review' }}
+          CLAUDE_PEER_REVIEW_BOTS: ${{ inputs.CLAUDE_PEER_REVIEW_BOTS || 'github-copilot[bot],copilot-pull-request-reviewer[bot]' }}
+          CLAUDE_REQUIRE_PEER_REVIEW: ${{ inputs.CLAUDE_REQUIRE_PEER_REVIEW || 'true' }}
+          CLAUDE_AUTO_READY_DRAFTS: ${{ inputs.CLAUDE_AUTO_READY_DRAFTS }}
+          CLAUDE_POST_MERGE_HEALTHCHECK_URL: ${{ inputs.CLAUDE_POST_MERGE_HEALTHCHECK_URL }}
+          CLAUDE_POST_MERGE_HEALTHCHECK_URLS: ${{ inputs.CLAUDE_POST_MERGE_HEALTHCHECK_URLS }}
+          CLAUDE_POST_MERGE_HEALTHCHECK_SECONDS: ${{ inputs.CLAUDE_POST_MERGE_HEALTHCHECK_SECONDS }}
+          CLAUDE_POST_MERGE_HEALTHCHECK_INTERVAL_SECONDS: ${{ inputs.CLAUDE_POST_MERGE_HEALTHCHECK_INTERVAL_SECONDS }}
+          CLAUDE_POST_MERGE_HEALTHCHECK_SUCCESS_STREAK: ${{ inputs.CLAUDE_POST_MERGE_HEALTHCHECK_SUCCESS_STREAK }}
+          CLAUDE_POST_MERGE_ROLLBACK_MODE: ${{ inputs.CLAUDE_POST_MERGE_ROLLBACK_MODE }}
