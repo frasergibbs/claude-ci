@@ -701,6 +701,10 @@ function buildDocsPrompt(input) {
 }
 
 async function main() {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error("ANTHROPIC_API_KEY is not set. Ensure the secret is configured in the caller repository.");
+  }
+
   appendSummary(["### Claude Orchestrator", "Starting mandatory Claude-led review."]);
 
   const { pr } = readEventPayload();
