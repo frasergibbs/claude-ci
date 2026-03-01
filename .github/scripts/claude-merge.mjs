@@ -76,6 +76,18 @@ function parseRequiredChecks() {
     .filter(Boolean);
 }
 
+function resolveTargetBranch() {
+  const configured = process.env.CLAUDE_MERGE_TARGET_BRANCH?.trim();
+  if (configured && configured.length > 0) {
+    return configured;
+  }
+  const defaultBranch = payload.repository?.default_branch;
+  if (typeof defaultBranch === "string" && defaultBranch.length > 0) {
+    return defaultBranch;
+  }
+  return "main";
+}
+
 function parseHealthEndpoints() {
   const urls = [];
   const single = process.env.CLAUDE_POST_MERGE_HEALTHCHECK_URL;
@@ -881,7 +893,7 @@ async function main() {
     return;
   }
 
-  const targetBase = (await branchExists("staging")) ? "staging" : "main";
+  const targetBase = resolveTargetBranch();
 
   if (pr.base.ref !== targetBase) {
     await githubRequest(`/repos/${owner}/${repo}/pulls/${pullNumber}`, {

@@ -24,6 +24,9 @@ on:
       CLAUDE_AUTO_READY_DRAFTS:
         type: string
         default: ''
+      CLAUDE_MERGE_TARGET_BRANCH:
+        type: string
+        default: ''
       CLAUDE_POST_MERGE_HEALTHCHECK_URL:
         type: string
         default: ''
@@ -87,6 +90,7 @@ jobs:
           CLAUDE_PEER_REVIEW_BOTS: ${{ inputs.CLAUDE_PEER_REVIEW_BOTS || 'github-copilot[bot],copilot-pull-request-reviewer[bot]' }}
           CLAUDE_REQUIRE_PEER_REVIEW: ${{ inputs.CLAUDE_REQUIRE_PEER_REVIEW || 'true' }}
           CLAUDE_AUTO_READY_DRAFTS: ${{ inputs.CLAUDE_AUTO_READY_DRAFTS }}
+          CLAUDE_MERGE_TARGET_BRANCH: ${{ inputs.CLAUDE_MERGE_TARGET_BRANCH }}
           CLAUDE_POST_MERGE_HEALTHCHECK_URL: ${{ inputs.CLAUDE_POST_MERGE_HEALTHCHECK_URL }}
           CLAUDE_POST_MERGE_HEALTHCHECK_URLS: ${{ inputs.CLAUDE_POST_MERGE_HEALTHCHECK_URLS }}
           CLAUDE_POST_MERGE_HEALTHCHECK_SECONDS: ${{ inputs.CLAUDE_POST_MERGE_HEALTHCHECK_SECONDS }}
