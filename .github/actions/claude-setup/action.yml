@@ -38,9 +38,12 @@ runs:
           install_cmd="npm ci"
           cache_manager="npm"
           cache_enabled="true"
-        else
+        elif [ -f package.json ]; then
           manager="npm"
           install_cmd="npm install"
+        else
+          manager="none"
+          install_cmd="echo 'No package manager detected — skipping dependency install'"
         fi
 
         echo "manager=${manager}" >> "$GITHUB_OUTPUT"
