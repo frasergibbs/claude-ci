@@ -622,11 +622,12 @@ function buildFixPrompt(passName, passResult, context) {
     ? [
         "",
         "SCOPE FIX CONSTRAINTS — read carefully before touching any file:",
-        "- Scope fixes are SUBTRACTIVE ONLY. Your only permitted actions are removing or reverting out-of-scope changes.",
+        "- You may ONLY fix trivial scope issues: removing a stray debug line, an accidental import, or a small unrelated hunk that clearly does not belong.",
+        "- NEVER revert entire files, features, or large blocks of intentional code. If findings describe whole features or sub-issues bundled into this PR, DO NOT attempt to fix them — those require the human author to split the PR.",
+        "- NEVER delete test files or production source files.",
         "- NEVER add new files, documentation, comments, or code — even to satisfy an acceptance-criteria finding.",
-        "- NEVER generate documentation, README updates, changelog entries, or inline comments to address a finding.",
-        "- If a finding says evidence is missing or documentation is absent, DO NOT attempt to create that evidence. That finding cannot be resolved through code changes; leave it unfixed and note it in your summary.",
-        "- A scope fix that adds content will itself be flagged as out-of-scope and create an infinite loop. When in doubt, revert rather than add.",
+        "- If a finding cannot be resolved with a small, surgical edit (under ~20 lines changed), leave it unfixed and note in your summary that it requires human intervention.",
+        "- When in doubt, make NO changes rather than risk reverting intentional work.",
       ]
     : [];
 
